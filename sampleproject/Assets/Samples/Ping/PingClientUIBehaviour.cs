@@ -14,6 +14,7 @@ public class PingClientUIBehaviour : MonoBehaviour
     // Ping statistics
     static int s_PingTime;
     static int s_PingCounter;
+    static string s_DataSent;
 
     // Matchmaking
     public string MatchmakingServer = "";
@@ -66,10 +67,11 @@ public class PingClientUIBehaviour : MonoBehaviour
     }
 
     // Update the ping statistics displayed in the ui. Should be called from the ping client every time a new ping is complete
-    public static void UpdateStats(int count, int time)
+    public static void UpdateStats(int count, int time, string previousData = "")
     {
         s_PingCounter = count;
         s_PingTime = time;
+        s_DataSent = previousData;
     }
 
     void UpdateMatchmakingUI()
@@ -92,7 +94,7 @@ public class PingClientUIBehaviour : MonoBehaviour
 
     void UpdatePingClientUI()
     {
-        GUILayout.Label("PING " + s_PingCounter + ": " + s_PingTime + "ms");
+        GUILayout.Label("PING " + s_PingCounter + ": " + s_PingTime + "ms. Last data sent: " + s_DataSent);
         if (!ServerEndPoint.IsValid)
         {
             // Ping is not currently running, display ui for starting a ping

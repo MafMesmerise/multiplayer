@@ -29,7 +29,7 @@ public class PingClientBehaviour : MonoBehaviour
         m_ClientDriver = new UdpNetworkDriver(new INetworkParameter[0]);
 
         m_pendingPings = new NativeArray<PendingPing>(64, Allocator.Persistent);
-        m_pingStats = new NativeArray<int>(2, Allocator.Persistent);
+        m_pingStats = new NativeArray<int>(3, Allocator.Persistent);
         m_clientToServerConnection = new NativeArray<NetworkConnection>(1, Allocator.Persistent);
     }
 
@@ -76,10 +76,18 @@ public class PingClientBehaviour : MonoBehaviour
                     pendingPings[0] = new PendingPing {id = pingStats[0], time = fixedTime};
                     // Create a 4 byte data stream which we can store our ping sequence number in
                     var pingData = new DataStreamWriter(4, Allocator.Temp);
-                    pingData.Write(pingStats[0]);
+                    // pingData.Write(pingStats[0]);
+                    pingStats[2] = (int)fixedTime;
+                    pingData.Write(pingStats[2]);
+                    /*byte[] ipAsBytes = System.Convert.FromBase64String("100.80.60.40");
+                    byte dataToSend;
+                    System.Byte.TryParse("100.80.60.40", out dataToSend);
+                    pingData.Write(dataToSend);*/
                     connection[0].Send(driver, pingData);
                     // Update the number of sent pings
                     pingStats[0] = pingStats[0] + 1;
+                    // Update the "last data sent" info
+                    
                 }
                 else if (cmd == NetworkEvent.Type.Data)
                 {
@@ -112,7 +120,7 @@ public class PingClientBehaviour : MonoBehaviour
 
         // Update the ping client UI with the ping statistics computed by teh job scheduled previous frame since that
         // is now guaranteed to have completed
-        PingClientUIBehaviour.UpdateStats(m_pingStats[0], m_pingStats[1]);
+        PingClientUIBehaviour.UpdateStats(m_pingStats[0], m_pingStats[1], m_pingStats[2].ToString());
         var pingJob = new PingJob
         {
             driver = m_ClientDriver,

@@ -99,7 +99,7 @@ public class PingClientSystem : JobComponentSystem
     {
         if (!m_DriverSystem.ClientDriver.IsCreated)
             return inputDep;
-        PingClientUIBehaviour.UpdateStats(m_pingStats[0], m_pingStats[1]);
+        PingClientUIBehaviour.UpdateStats(m_pingStats[0], m_pingStats[1], m_pingStats[2].ToString());
         if (PingClientUIBehaviour.ServerEndPoint.IsValid && m_ConnectionGroup.IsEmptyIgnoreFilter)
         {
             var conJob = new ConnectJob

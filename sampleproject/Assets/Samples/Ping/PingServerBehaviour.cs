@@ -11,6 +11,9 @@ public class PingServerBehaviour : MonoBehaviour
 
     private JobHandle m_updateHandle;
 
+    private NativeArray<int> output;
+    private string status;
+
     void Start()
     {
         ushort serverPort = 9000;
@@ -27,6 +30,7 @@ public class PingServerBehaviour : MonoBehaviour
             m_ServerDriver.Listen();
 
         m_connections = new NativeList<NetworkConnection>(16, Allocator.Persistent);
+        output = new NativeArray<int>(1, Allocator.Persistent);
     }
     /*
     void OnGUI()
@@ -56,6 +60,7 @@ public class PingServerBehaviour : MonoBehaviour
         m_updateHandle.Complete();
         m_ServerDriver.Dispose();
         m_connections.Dispose();
+        output.Dispose();
     }
 
     [BurstCompile]
@@ -89,10 +94,12 @@ public class PingServerBehaviour : MonoBehaviour
         }
     }
 
-    static NetworkConnection ProcessSingleConnection(UdpNetworkDriver.Concurrent driver, NetworkConnection connection)
+    static NetworkConnection ProcessSingleConnection(UdpNetworkDriver.Concurrent driver, NetworkConnection connection, out int feedback)
     {
         DataStreamReader strm;
         NetworkEvent.Type cmd;
+
+        feedback = -1;
 
         // Pop all events for the connection
         while ((cmd = driver.PopEventForConnection(connection, out strm)) != NetworkEvent.Type.Empty)
@@ -102,7 +109,7 @@ public class PingServerBehaviour : MonoBehaviour
                 // For ping requests we reply with a pong message. A DataStreamReader.Context is required to keep track of current read position since DataStreamReader is immutable
                 DataStreamReader.Context readerCtx = default(DataStreamReader.Context);
                 int id = strm.ReadInt(ref readerCtx);
-                print(id);
+                feedback = id;
                 // Create a temporary DataStreamWriter to keep our serialized pong message
                 DataStreamWriter pongData = new DataStreamWriter(4, Allocator.Temp);
                 pongData.Write(id);
@@ -110,7 +117,7 @@ public class PingServerBehaviour : MonoBehaviour
                 driver.Send(NetworkPipeline.Null, connection, pongData);
             }
             else if (cmd == NetworkEvent.Type.Disconnect)
-            {
+            {                
                 // When disconnected we make sure the connection return false to IsCreated so the next frames DriverUpdateJob will remove it                
                 return default(NetworkConnection);
             }
@@ -137,10 +144,14 @@ public class PingServerBehaviour : MonoBehaviour
     {
         public UdpNetworkDriver.Concurrent driver;
         public NativeArray<NetworkConnection> connections;
+        public NativeArray<int> feedback;
 
         public void Execute(int i)
         {
-            connections[i] = ProcessSingleConnection(driver, connections[i]);
+            int output = -1;
+            connections[i] = ProcessSingleConnection(driver, connections[i], out output);
+            if (output != -1)
+                feedback[0] = output;
         }
     }
 #endif
@@ -154,10 +165,9 @@ public class PingServerBehaviour : MonoBehaviour
 
     void UpdateStatus()
     {
-        string status = "";
-
-        if (m_connections.IsCreated)
+        if (m_connections.IsCreated && m_connections.Length > 0 && output[0] != -1)
         {
+            status = "";
             status += "Connections: " + m_connections.Length;
             for (int i = 0; i < m_connections.Length; i++)
             {
@@ -165,6 +175,8 @@ public class PingServerBehaviour : MonoBehaviour
                 {
                     NetworkConnection connection = m_connections[i];
                     status += "\nConnection " + i + " state: " + connection.GetState<UdpNetworkDriver>(m_ServerDriver).ToString();
+                    status += "\nData read: " + output[0];
+                    /*
                     DataStreamReader dsr = new DataStreamReader();
                     connection.PopEvent<UdpNetworkDriver>(m_ServerDriver, out dsr);
                     if (dsr.IsCreated)
@@ -176,14 +188,13 @@ public class PingServerBehaviour : MonoBehaviour
                     else
                     {
                         status += " - connection PopEvent data IS NOT CREATED";
-                    }
+                    }*/
                 }
-                else
-                    status += "\nConnection " + i + " NOT isCreated";
+                // else                    status += "\nConnection " + i + " NOT isCreated";
             }
         }
-        else
-            status = "No Connections";
+        else if (status == "")
+            status = "No valid connections";
 
 
         ServerStatusUI.instance.UpdateStatus(status);
@@ -226,10 +237,11 @@ public class PingServerBehaviour : MonoBehaviour
             // list from the job
 #if ENABLE_IL2CPP
             // IJobParallelForDeferExtensions is not working correctly with IL2CPP
-            connections = m_connections
+            connections = m_connections,
 #else
-            connections = m_connections.AsDeferredJobArray()
+            connections = m_connections.AsDeferredJobArray(),
 #endif
+            feedback = output
         };
         // Update the driver should be the first job in the chain
         m_updateHandle = m_ServerDriver.ScheduleUpdate();
