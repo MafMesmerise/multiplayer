@@ -156,9 +156,9 @@ MonoBehaviour:
   asteroidVelocity: 10
   playerForce: 50
   bulletVelocity: 500
-  numAsteroids: 200
-  levelWidth: 2048
-  levelHeight: 2048
+  numAsteroids: 50
+  levelWidth: 1644
+  levelHeight: 1024
   damageShips: 1
 --- !u!4 &83804743
 Transform:
@@ -245,7 +245,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 4
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &822859748
 GameObject:

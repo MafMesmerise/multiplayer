@@ -72,8 +72,7 @@ public class PingClientBehaviour : MonoBehaviour
             {
                 if (cmd == NetworkEvent.Type.Connect)
                 {
-                    // When we get the connect message we can start sending data to the server
-                    // Set the ping id to a sequence number for the new ping we are about to send
+                    // When we get the connect message we can start sending data to the server. Set the ping id to a sequence number for the new ping we are about to send
                     pendingPings[0] = new PendingPing {id = pingStats[0], time = fixedTime};
                     // Create a 4 byte data stream which we can store our ping sequence number in
                     var pingData = new DataStreamWriter(4, Allocator.Temp);
@@ -109,7 +108,7 @@ public class PingClientBehaviour : MonoBehaviour
     {
         // Wait for the previous frames ping to complete before starting a new one, the Complete in LateUpdate is not
         // enough since we can get multiple FixedUpdate per frame on slow clients
-        m_updateHandle.Complete();
+        m_updateHandle.Complete();        
 
         // Update the ping client UI with the ping statistics computed by teh job scheduled previous frame since that
         // is now guaranteed to have completed
